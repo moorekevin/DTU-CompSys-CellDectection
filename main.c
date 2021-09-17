@@ -4,16 +4,16 @@
 #include "cbmp.h"
 #include <string.h>
 
-#define CAPTURING_AREA 12
+#define CAPTURING_AREA 24
 
 // Function Prototypes
 void greyscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void erode(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
-void detect_area(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
-bool is_white_in_exclusion_zone(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
-bool is_white_in_detection_area(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
-void deleteCell(unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
+void detect_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
+bool is_white_in_exclusion_zone(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
+bool is_white_in_detection_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
+void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 
 //Declaring the array to store the image (unsigned char = unsigned 8 bit)
@@ -70,13 +70,28 @@ int main(int argc, char **argv)
 
   erode(thresholded_image, eroded_image);
 
-  detect_area(eroded_image, output_image);
+  copy_image(eroded_image, output_image);
+  detect_area(output_image);
+  //is_white_in_exclusion_zone(output_image, 0, 0);
 
   write_bitmap(output_image, argv[2]);
 
-  //printf("Done!\n %d", cellCount);
-  printf("Done!");
+  printf("Done!\nCells counted: %d", cellCount);
   return 0;
+}
+
+void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+{
+  for (int x = 0; x < BMP_WIDTH; x++)
+  {
+    for (int y = 0; y < BMP_HEIGHT; y++)
+    {
+      for (int c = 0; c < BMP_CHANNELS; c++)
+      {
+        output_image[x][y][c] = input_image[x][y][c];
+      }
+    }
+  }
 }
 
 //Function to convert pixels of an image into greyscale
@@ -148,57 +163,41 @@ void erode(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsig
   }
 }
 
-void detect_area(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+void detect_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
-  copy_image(input_image, output_image);
   for (int x = 0; x < BMP_WIDTH - CAPTURING_AREA; x++)
   {
     for (int y = 0; y < BMP_HEIGHT - CAPTURING_AREA; y++)
     {
-
       // Continue only if detection area is surrounded by black pixels
-      if (is_white_in_exclusion_zone(input_image, output_image, x, y))
+      if (is_white_in_exclusion_zone(image, x, y))
       {
         continue;
       }
 
       // Continue only if there is white in the detection area (a cell)
-      if (!is_white_in_detection_area(input_image, output_image, x, y))
+      if (!is_white_in_detection_area(image, x, y))
       {
         continue;
       }
 
       cellCount++;
-      deleteCell(output_image, x, y);
+      deleteCell(image, x, y);
     }
   }
 }
 
-void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
-{
-  for (int x = 0; x < BMP_WIDTH; x++)
-  {
-    for (int y = 0; y < BMP_HEIGHT; y++)
-    {
-      for (int c = 0; c < BMP_CHANNELS; c++)
-      {
-        output_image[x][y][c] = input_image[x][y][c];
-      }
-    }
-  }
-}
-
-bool is_white_in_exclusion_zone(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
+bool is_white_in_exclusion_zone(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
   for (int xOffset = -1; xOffset < CAPTURING_AREA + 1; xOffset++)
   {
     for (int yOffset = -1; yOffset < CAPTURING_AREA + 1; yOffset++)
     {
       // If the pixel is a part of the exclusion frame
-      if ((xOffset == -1 || xOffset == CAPTURING_AREA) && (yOffset == -1 || yOffset == CAPTURING_AREA))
+      if ((xOffset == -1 || xOffset == CAPTURING_AREA) || (yOffset == -1 || yOffset == CAPTURING_AREA))
       {
         // If there is a white pixel on the exclusion frame
-        if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT && input_image[x + xOffset][y + yOffset][0] > 0)
+        if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT && image[x + xOffset][y + yOffset][0] > 0)
         {
           return true;
         }
@@ -208,14 +207,14 @@ bool is_white_in_exclusion_zone(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT]
   return false;
 }
 
-bool is_white_in_detection_area(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
+bool is_white_in_detection_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
   for (int xOffset = 0; xOffset < CAPTURING_AREA; xOffset++)
   {
     for (int yOffset = 0; yOffset < CAPTURING_AREA; yOffset++)
     {
       // If the detection area contains a cell
-      if (input_image[x + xOffset][y + yOffset][0] > 1)
+      if (image[x + xOffset][y + yOffset][0] > 1)
       {
         return true;
       }
@@ -225,16 +224,19 @@ bool is_white_in_detection_area(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT]
 }
 
 // Sets the color of all pixels in detection area to black
-void deleteCell(unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
+void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
   for (int xOffset = 0; xOffset < CAPTURING_AREA; xOffset++)
   {
     for (int yOffset = 0; yOffset < CAPTURING_AREA; yOffset++)
     {
-      for (int c = 0; c < BMP_CHANNELS; c++)
-      {
-        output_image[x + xOffset][y + yOffset][c] = 0;
-      }
+      image[x + xOffset][y + yOffset][0] = 0;
+      image[x + xOffset][y + yOffset][1] = 0;
+      image[x + xOffset][y + yOffset][2] = 255;
+      // for (int c = 0; c < BMP_CHANNELS; c++)
+      // {
+      //   image[x + xOffset][y + yOffset][c] = 0;
+      // }
     }
   }
 }
