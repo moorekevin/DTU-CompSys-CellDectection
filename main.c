@@ -165,9 +165,9 @@ void erode(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsig
 
 void detect_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
-  for (int x = 0; x < BMP_WIDTH - CAPTURING_AREA; x++)
+  for (int x = 0; x < BMP_WIDTH - CAPTURING_AREA + 1; x++)
   {
-    for (int y = 0; y < BMP_HEIGHT - CAPTURING_AREA; y++)
+    for (int y = 0; y < BMP_HEIGHT - CAPTURING_AREA + 1; y++)
     {
       // Continue only if detection area is surrounded by black pixels
       if (is_white_in_exclusion_zone(image, x, y))
