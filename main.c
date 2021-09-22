@@ -9,26 +9,21 @@
 // Function Prototypes
 void greyscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
-void erode(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
+void erode(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void detect_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 bool is_white_in_exclusion_zone(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 bool is_white_in_detection_area(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 
-//Declaring the array to store the image (unsigned char = unsigned 8 bit)
 unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char outputscalify_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char thresholded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char eroded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-
 // Other variables
 int cellCount = 0;
 
 //Main function
 int main(int argc, char **argv)
 {
+  printf("ok");
   //argc counts how may arguments are passed
   //argv[0] is a string with the name of the program
   //argv[1] is the first command line argument (input image)
@@ -46,13 +41,19 @@ int main(int argc, char **argv)
   //Load image from file
   read_bitmap(argv[1], input_image);
 
+  unsigned char outputscalify_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+
   //Run greyscalification
   greyscalify(input_image, outputscalify_image);
+
+  unsigned char thresholded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 
   //Make pixels either black or white
   apply_threshold(outputscalify_image, thresholded_image);
 
   // unsigned char *imagepointer = thresholded_image;
+  unsigned char eroded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+  copy_image(thresholded_image, eroded_image);
 
   // //Erode image
   // for (int i = 0; i < 10; i++)
@@ -68,8 +69,9 @@ int main(int argc, char **argv)
   //   write_bitmap(output_image, nameOfFile);
   // }
 
-  erode(thresholded_image, eroded_image);
+  erode(eroded_image);
 
+  unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
   copy_image(eroded_image, output_image);
   detect_area(output_image);
   //is_white_in_exclusion_zone(output_image, 0, 0);
@@ -129,34 +131,25 @@ void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNE
   }
 }
 
-void erode(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+void erode(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
   for (int x = 0; x < BMP_WIDTH; x++)
   {
     for (int y = 0; y < BMP_HEIGHT; y++)
     {
-      if (input_image[x][y][0] == 0)
+      if (image[x][y][0] != 0)
       {
-        output_image[x][y][0] = 0;
-        continue;
-      }
-      if ((x > 0 && input_image[x - 1][y][0] == 0) ||             // Checking left side
-          (x < BMP_WIDTH - 1 && input_image[x + 1][y][0] == 0) || // Checking right side
-          (y > 0 && input_image[x][y - 1][0] == 0) ||             // Checking top side
-          (y < BMP_HEIGHT - 1 && input_image[x][y + 1][0] == 0)   // Checking bottom side
-      )
-      {
-        // Sets the color to black
-        for (int c = 0; c < BMP_CHANNELS; c++)
+        if ((x > 0 && image[x - 1][y][0] == 0) ||             // Checking left side
+            (x < BMP_WIDTH - 1 && image[x + 1][y][0] == 0) || // Checking right side
+            (y > 0 && image[x][y - 1][0] == 0) ||             // Checking top side
+            (y < BMP_HEIGHT - 1 && image[x][y + 1][0] == 0)   // Checking bottom side
+        )
         {
-          output_image[x][y][c] = 0;
-        }
-      }
-      else
-      {
-        for (int c = 0; c < BMP_CHANNELS; c++)
-        {
-          output_image[x][y][c] = input_image[x][y][c];
+          // Sets the color to black
+          for (int c = 0; c < BMP_CHANNELS; c++)
+          {
+            image[x][y][c] = 0;
+          }
         }
       }
     }
