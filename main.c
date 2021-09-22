@@ -4,17 +4,19 @@
 #include "cbmp.h"
 #include <string.h>
 
-#define CAPTURING_AREA 24
+#define CAPTURING_AREA 12
+#define CELL_SIZE 20
 
 // Function Prototypes
 void greyscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
-void detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
+bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 bool is_white_in_exclusion_zone(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 bool is_white_in_detection_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
-void deleteCell(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
+void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y);
 void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
+void drawCoordinates(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 
 //Declaring the array to store the erode_image (unsigned char = unsigned 8 bit)
 unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
@@ -26,6 +28,10 @@ unsigned char original_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 
 // Other variables
 int cellCount = 0;
+
+// Coordinates
+unsigned int xCoords[500];
+unsigned int yCoords[500];
 
 //Main function
 int main(int argc, char **argv)
@@ -53,28 +59,31 @@ int main(int argc, char **argv)
   //Make pixels either black or white
   apply_threshold(outputscalify_image, thresholded_image);
   // Copies the erode_image to the eroded imega
-  copy_image(thresholded_image, eroded_image);
+  copy_image(thresholded_image, output_image);
 
-  //Erode erode_image
-  // for (int i = 0; i < 10; i++)
-  // {
-  //   if (i != 0)
-  //   { //Save erode_image to file before erosion
-  //     erode(eroded_image);
-  //   }
-  //   //Save eroded erode_image to file
-  //   char nameOfFile[40];
-  //   char originalname[] = argv[2];
-  //   originalname[strlen(originalname)-4] = '\0';
-  //   sprintf(nameOfFile, "%s %d.bmp", , i);
-  //   write_bitmap(output_image, nameOfFile);
-  // }
+  // Start detecting and eroding
+  char *nameWithoutExt = NULL;
+  nameWithoutExt = strdup(argv[2]);
+  nameWithoutExt[strlen(nameWithoutExt) - 4] = '\0';
+  char nameOfFile[40];
+  for (int i = 0; true; i++)
+  {
+    if (i != 0) // Save image before detecting and eroding
+    {
+      if (!detect_area(output_image)) // If it has not detected white
+      {
+        break;
+      }
+      erode(output_image);
+    }
+    //Save output_image to file
+    sprintf(nameOfFile, "%s %d.bmp", nameWithoutExt, i);
+    write_bitmap(output_image, nameOfFile);
+  }
 
-  erode(eroded_image);
-
-  copy_image(eroded_image, output_image);
-  detect_area(output_image);
-  write_bitmap(output_image, argv[2]);
+  drawCoordinates(input_image);
+  sprintf(nameOfFile, "%s %s.bmp", nameWithoutExt, "OUTPUT");
+  write_bitmap(input_image, nameOfFile);
 
   printf("Done!\nCells counted: %d", cellCount);
   return 0;
@@ -155,8 +164,9 @@ void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
   }
 }
 
-void detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
+  bool hasDetectedWhite = false;
   for (int x = 0; x < BMP_WIDTH - CAPTURING_AREA + 1; x++)
   {
     for (int y = 0; y < BMP_HEIGHT - CAPTURING_AREA + 1; y++)
@@ -164,6 +174,7 @@ void detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
       // Continue only if detection area is surrounded by black pixels
       if (is_white_in_exclusion_zone(erode_image, x, y))
       {
+        hasDetectedWhite = true;
         continue;
       }
 
@@ -172,11 +183,17 @@ void detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
       {
         continue;
       }
+      hasDetectedWhite = true;
+
+      // Saving coordinates
+      xCoords[cellCount] = x + CAPTURING_AREA / 2;
+      yCoords[cellCount] = y + CAPTURING_AREA / 2;
 
       cellCount++;
       deleteCell(erode_image, x, y);
     }
   }
+  return hasDetectedWhite;
 }
 
 bool is_white_in_exclusion_zone(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
@@ -216,20 +233,47 @@ bool is_white_in_detection_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT]
 }
 
 // Sets the color of all pixels in detection area to black
-void deleteCell(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
+void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
   for (int xOffset = 0; xOffset < CAPTURING_AREA; xOffset++)
   {
     for (int yOffset = 0; yOffset < CAPTURING_AREA; yOffset++)
     {
-      erode_image[x + xOffset][y + yOffset][0] = 0;
-      erode_image[x + xOffset][y + yOffset][1] = 0;
-      erode_image[x + xOffset][y + yOffset][2] = 255;
+      // Mark every cell with blue
+      // image[x + xOffset][y + yOffset][0] = 0;
+      // image[x + xOffset][y + yOffset][1] = 0;
+      // image[x + xOffset][y + yOffset][2] = 255;
+
       // This deletes the cells
-      // for (int c = 0; c < BMP_CHANNELS; c++)
-      // {
-      //   erode_image[x + xOffset][y + yOffset][c] = 0;
-      // }
+      for (int c = 0; c < BMP_CHANNELS; c++)
+      {
+        image[x + xOffset][y + yOffset][c] = 0;
+      }
+    }
+  }
+}
+
+void drawCoordinates(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+{
+  for (int i = 0; i < cellCount; i++)
+  {
+    for (int j = -CELL_SIZE / 2; j <= CELL_SIZE / 2; j++)
+    {
+      for (int k = -1; k <= 1; k++)
+      {
+        if (xCoords[i] + j >= 0 && xCoords[i] + j < BMP_WIDTH)
+        {
+          image[xCoords[i] + j][yCoords[i] + k][0] = 255;
+          image[xCoords[i] + j][yCoords[i] + k][1] = 0;
+          image[xCoords[i] + j][yCoords[i] + k][2] = 0;
+        }
+        if (yCoords[i] + j >= 0 && yCoords[i] + j < BMP_WIDTH)
+        {
+          image[xCoords[i] + k][yCoords[i] + j][0] = 255;
+          image[xCoords[i] + k][yCoords[i] + j][1] = 0;
+          image[xCoords[i] + k][yCoords[i] + j][2] = 0;
+        }
+      }
     }
   }
 }
