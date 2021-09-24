@@ -37,7 +37,6 @@ unsigned int yCoords[500];
 //Main function
 int main(int argc, char **argv)
 {
-
   //argc counts how may arguments are passed
   //argv[0] is a string with the name of the program
   //argv[1] is the first command line argument (input erode_image)
@@ -154,14 +153,13 @@ void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
         //     (y > 0 && original_image[x][y - 1][0] == 0) ||             // Checking top side
         //     (y < BMP_HEIGHT - 1 && original_image[x][y + 1][0] == 0)   // Checking bottom side
         // )
-        for (int i = 0; i < EROSION_SIZE; i++)
+        // {
+        for (int i = -EROSION_SIZE / 2; i <= EROSION_SIZE / 2; i++)
         {
-          int erosionCheck = (EROSION_SIZE - (abs(EROSION_SIZE / 2 - i) * 2) - 1) / 2;
-          for (int j = (EROSION_SIZE / 2) - erosionCheck; j <= (EROSION_SIZE / 2) + erosionCheck; j++)
+          int erosionCheck = (EROSION_SIZE - (abs(EROSION_SIZE / 2 - (i + EROSION_SIZE / 2)) * 2) - 1) / 2;
+          for (int j = -erosionCheck; j <= erosionCheck; j++)
           {
-            if ((x + i >= 0 && (x + i < BMP_WIDTH)) && (original_image[x + i][y][0] == 0) ||
-                (y + j >= 0 && (y + j < BMP_HEIGHT)) && (original_image[x][y + j][0] == 0) ||
-                (y + j >= 0 && (y + j < BMP_HEIGHT)) && (x + i >= 0 && (x + i < BMP_WIDTH)) && (original_image[x + i][y + j][0] == 0))
+            if (x + i >= 0 && x + i < BMP_WIDTH && y + j >= 0 && y + j < BMP_HEIGHT && original_image[x + i][y + j][0] == 0)
             {
               // Sets the color to black
               for (int c = 0; c < BMP_CHANNELS; c++)
