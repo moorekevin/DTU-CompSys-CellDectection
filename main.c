@@ -37,17 +37,6 @@ unsigned int yCoords[500];
 //Main function
 int main(int argc, char **argv)
 {
-
-  // KEVIN METHOD
-  // for (int i = -EROSION_SIZE / 2; i <= EROSION_SIZE / 2; i++)
-  // {
-  //   int erosionCheck = (EROSION_SIZE - (abs(EROSION_SIZE / 2 - (i + EROSION_SIZE / 2)) * 2) - 1) / 2;
-  //   for (int j = -erosionCheck; j <= erosionCheck; j++)
-  //   {
-  //     printf("i = %i , j = %i \n", i, j);
-  //   }
-  // }
-
   //argc counts how may arguments are passed
   //argv[0] is a string with the name of the program
   //argv[1] is the first command line argument (input erode_image)
@@ -177,10 +166,12 @@ void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
               {
                 erode_image[x][y][c] = 0;
               }
+              goto finish;
             }
           }
         }
       }
+    finish:;
     }
   }
 }
