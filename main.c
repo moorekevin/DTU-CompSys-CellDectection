@@ -4,7 +4,7 @@
 #include "cbmp.h"
 #include <string.h>
 
-#define CAPTURING_AREA 12
+#define CAPTURING_AREA 13
 #define CELL_SIZE 20
 #define EROSION_SIZE 3
 
@@ -37,6 +37,23 @@ unsigned int yCoords[500];
 //Main function
 int main(int argc, char **argv)
 {
+  for (int xOffset = -CAPTURING_AREA / 2; xOffset <= CAPTURING_AREA / 2; xOffset++)
+  {
+    for (int yOffset = -CAPTURING_AREA / 2; yOffset <= CAPTURING_AREA / 2; yOffset++)
+    {
+      // If the pixel is a part of the exclusion frame (a circle)
+      if (xOffset * xOffset + yOffset * yOffset >= (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2) && xOffset * xOffset + yOffset * yOffset <= (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2) + CAPTURING_AREA * 1.5)
+      {
+        printf("O");
+      }
+      else
+      {
+        printf(".");
+      }
+    }
+    printf("\n");
+  }
+
   //argc counts how may arguments are passed
   //argv[0] is a string with the name of the program
   //argv[1] is the first command line argument (input erode_image)
@@ -179,9 +196,9 @@ void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
   bool hasDetectedWhite = false;
-  for (int x = 0; x < BMP_WIDTH - CAPTURING_AREA + 1; x++)
+  for (int x = 0; x < BMP_WIDTH; x++)
   {
-    for (int y = 0; y < BMP_HEIGHT - CAPTURING_AREA + 1; y++)
+    for (int y = 0; y < BMP_HEIGHT; y++)
     {
       // Continue only if detection area is surrounded by black pixels
       if (is_white_in_exclusion_zone(erode_image, x, y))
@@ -198,8 +215,8 @@ bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
       hasDetectedWhite = true;
 
       // Saving coordinates
-      xCoords[cellCount] = x + CAPTURING_AREA / 2;
-      yCoords[cellCount] = y + CAPTURING_AREA / 2;
+      xCoords[cellCount] = x;
+      yCoords[cellCount] = y;
 
       cellCount++;
       deleteCell(erode_image, x, y);
@@ -208,14 +225,34 @@ bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
   return hasDetectedWhite;
 }
 
+// bool is_white_in_exclusion_zone(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
+// {
+//   for (int xOffset = -1; xOffset < CAPTURING_AREA + 1; xOffset++)
+//   {
+//     for (int yOffset = -1; yOffset < CAPTURING_AREA + 1; yOffset++)
+//     {
+//       // If the pixel is a part of the exclusion frame
+//       if ((xOffset == -1 || xOffset == CAPTURING_AREA) || (yOffset == -1 || yOffset == CAPTURING_AREA))
+//       {
+//         // If there is a white pixel on the exclusion frame
+//         if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT && erode_image[x + xOffset][y + yOffset][0] > 0)
+//         {
+//           return true;
+//         }
+//       }
+//     }
+//   }
+//   return false;
+// }
+
 bool is_white_in_exclusion_zone(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
-  for (int xOffset = -1; xOffset < CAPTURING_AREA + 1; xOffset++)
+  for (int xOffset = -CAPTURING_AREA / 2; xOffset <= CAPTURING_AREA / 2; xOffset++)
   {
-    for (int yOffset = -1; yOffset < CAPTURING_AREA + 1; yOffset++)
+    for (int yOffset = -CAPTURING_AREA / 2; yOffset <= CAPTURING_AREA / 2; yOffset++)
     {
-      // If the pixel is a part of the exclusion frame
-      if ((xOffset == -1 || xOffset == CAPTURING_AREA) || (yOffset == -1 || yOffset == CAPTURING_AREA))
+      // If the pixel is a part of the exclusion frame (a circle)
+      if (xOffset * xOffset + yOffset * yOffset >= (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2) && xOffset * xOffset + yOffset * yOffset <= (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2) + CAPTURING_AREA * 1.5)
       {
         // If there is a white pixel on the exclusion frame
         if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT && erode_image[x + xOffset][y + yOffset][0] > 0)
@@ -230,14 +267,18 @@ bool is_white_in_exclusion_zone(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT]
 
 bool is_white_in_detection_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
-  for (int xOffset = 0; xOffset < CAPTURING_AREA; xOffset++)
+  for (int xOffset = -CAPTURING_AREA / 2; xOffset <= CAPTURING_AREA / 2; xOffset++)
   {
-    for (int yOffset = 0; yOffset < CAPTURING_AREA; yOffset++)
+    for (int yOffset = -CAPTURING_AREA / 2; yOffset <= CAPTURING_AREA / 2; yOffset++)
     {
-      // If the detection area contains a cell
-      if (erode_image[x + xOffset][y + yOffset][0] > 1)
+      // If the pixel is a part of the detection area (inside the circle)
+      if (xOffset * xOffset + yOffset * yOffset < (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2))
       {
-        return true;
+        // If there is a white pixel in the detection area
+        if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT && erode_image[x + xOffset][y + yOffset][0] > 0)
+        {
+          return true;
+        }
       }
     }
   }
@@ -247,19 +288,27 @@ bool is_white_in_detection_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT]
 // Sets the color of all pixels in detection area to black
 void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x, int y)
 {
-  for (int xOffset = 0; xOffset < CAPTURING_AREA; xOffset++)
+  for (int xOffset = -CAPTURING_AREA / 2; xOffset <= CAPTURING_AREA / 2; xOffset++)
   {
-    for (int yOffset = 0; yOffset < CAPTURING_AREA; yOffset++)
+    for (int yOffset = -CAPTURING_AREA / 2; yOffset <= CAPTURING_AREA / 2; yOffset++)
     {
-      // Mark every cell with blue
-      // image[x + xOffset][y + yOffset][0] = 0;
-      // image[x + xOffset][y + yOffset][1] = 0;
-      // image[x + xOffset][y + yOffset][2] = 255;
-
-      // This deletes the cells
-      for (int c = 0; c < BMP_CHANNELS; c++)
+      // If the pixel is a part of the detection area (inside the circle)
+      if (xOffset * xOffset + yOffset * yOffset < (CAPTURING_AREA / 2) * (CAPTURING_AREA / 2))
       {
-        image[x + xOffset][y + yOffset][c] = 0;
+        // If there is a white pixel in the detection area
+        if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT)
+        {
+          // Mark every cell with blue
+          image[x + xOffset][y + yOffset][0] = 0;
+          // image[x + xOffset][y + yOffset][1] = 0;
+          image[x + xOffset][y + yOffset][2] = 255;
+
+          // This deletes the cells
+          // for (int c = 0; c < BMP_CHANNELS; c++)
+          // {
+          //   image[x + xOffset][y + yOffset][c] = 0;
+          // }
+        }
       }
     }
   }
@@ -273,13 +322,13 @@ void drawCoordinates(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
     {
       for (int k = -1; k <= 1; k++)
       {
-        if (xCoords[i] + j >= 0 && xCoords[i] + j < BMP_WIDTH)
+        if (xCoords[i] + j >= 0 && xCoords[i] + j < BMP_WIDTH && yCoords[i] + k >= 0 && yCoords[i] + k < BMP_HEIGHT)
         {
           image[xCoords[i] + j][yCoords[i] + k][0] = 255;
           image[xCoords[i] + j][yCoords[i] + k][1] = 0;
           image[xCoords[i] + j][yCoords[i] + k][2] = 0;
         }
-        if (yCoords[i] + j >= 0 && yCoords[i] + j < BMP_WIDTH)
+        if (yCoords[i] + j >= 0 && yCoords[i] + j < BMP_WIDTH && xCoords[i] + k >= 0 && xCoords[i] + k < BMP_HEIGHT)
         {
           image[xCoords[i] + k][yCoords[i] + j][0] = 255;
           image[xCoords[i] + k][yCoords[i] + j][1] = 0;
