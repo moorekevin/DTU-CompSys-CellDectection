@@ -40,3 +40,51 @@ Improve memory management
 1)  Make each pixel to one bit instead of 3 bytes.
 2)  Dynamically allocated x & y coordinate arrays.
 3)  Make Global variables to local?
+
+
+
+/////////////////////////////////////////////////////////////////////////////
+
+
+Improve erosion ideas
+Background: We can see on the pictures that the erosion make a lot of lines.
+1)  Eroding a 5x5 circle instead of 3x3.
+    Argument: It would make erosion more accurate by 
+    Result:
+    
+// Test method for it
+    int array[EROSION_SIZE][EROSION_SIZE] = {0};
+
+    for (int i = 0; i < EROSION_SIZE; i++)
+    {
+        int erosionCheck = (EROSION_SIZE - (abs(EROSION_SIZE / 2 - i) * 2) - 1) / 2;
+        for (int j = (EROSION_SIZE / 2) - erosionCheck; j <= (EROSION_SIZE / 2) + erosionCheck; j++)
+        {
+            array[i][j] = 1;
+        }
+    }
+
+    for (int i = 0; i < EROSION_SIZE; i++)
+    {
+        for (int j = 0; j < EROSION_SIZE; j++)
+        {
+            printf("%d", array[i][j]);
+        }
+        printf("\n");
+    }
+
+
+
+Improve detection ideas.
+1)  Make detection area a circle shape instead of a square.
+    Argument: This makes sense as we are looking for circular shapes rather than square ones 
+    and should make detecting closely positioned cells easier as there is a thin division between them.
+    Result:
+
+2) Make edge detection while thresholding image.
+
+
+Improve memory management
+1)  Make each pixel to one bit instead of 3 bytes.
+2)  Dynamically allocated x & y coordinate arrays.
+3)  Make Global variables to local?
