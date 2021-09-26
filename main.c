@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "cbmp.h"
 #include <string.h>
+#include <time.h>
 
 // Keep odd to maintain symmetry
 #define CAPTURING_AREA 13
@@ -10,7 +11,7 @@
 #define EROSION_SIZE 3
 
 // Function Prototypes
-void greyscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
+void grayscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
@@ -20,16 +21,20 @@ void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x,
 void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void drawCoordinates(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 
-//Declaring the array to store the erode_image (unsigned char = unsigned 8 bit)
+//Declaring the array to store the images (unsigned char = unsigned 8 bit)
 unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char outputscalify_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char thresholded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char eroded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-unsigned char original_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+// unsigned char outputscalify_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+// unsigned char thresholded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+// unsigned char eroded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+// unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+// unsigned char original_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+unsigned char image_1[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
+unsigned char image_2[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 
 // Other variables
 int cellCount = 0;
+clock_t start, end;
+double cpu_time_used;
 
 // Coordinates
 unsigned int xCoords[500];
@@ -38,6 +43,7 @@ unsigned int yCoords[500];
 //Main function
 int main(int argc, char **argv)
 {
+  start = clock();
 
   //argc counts how may arguments are passed
   //argv[0] is a string with the name of the program
@@ -56,13 +62,11 @@ int main(int argc, char **argv)
   //Load erode_image from file
   read_bitmap(argv[1], input_image);
 
-  //Run greyscalification
-  greyscalify(input_image, outputscalify_image);
+  //Run greyscalification on input image
+  grayscalify(input_image, image_2);
 
-  //Make pixels either black or white
-  apply_threshold(outputscalify_image, thresholded_image);
-  // Copies the erode_image to the eroded imega
-  copy_image(thresholded_image, output_image);
+  //Make pixels on grayscaled image either black or white
+  apply_threshold(image_2, image_1);
 
   // Start detecting and eroding
   char *nameWithoutExt = NULL;
@@ -73,15 +77,15 @@ int main(int argc, char **argv)
   {
     if (i != 0) // Save image before detecting and eroding
     {
-      if (!detect_area(output_image)) // If it has not detected white
+      if (!detect_area(image_1)) // If it has not detected white
       {
         break;
       }
-      erode(output_image);
+      erode(image_1);
     }
     //Save output_image to file
     sprintf(nameOfFile, "%s %d.bmp", nameWithoutExt, i);
-    write_bitmap(output_image, nameOfFile);
+    write_bitmap(image_1, nameOfFile);
   }
 
   drawCoordinates(input_image);
@@ -89,6 +93,9 @@ int main(int argc, char **argv)
   write_bitmap(input_image, nameOfFile);
 
   printf("Done!\nCells counted: %d", cellCount);
+  end = clock();
+  cpu_time_used = end - start;
+  printf("\n Total time: %f ms\n", cpu_time_used * 1000.0 / CLOCKS_PER_SEC);
   return 0;
 }
 
@@ -107,7 +114,7 @@ void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], 
 }
 
 //Function to convert pixels of an erode_image into greyscale
-void greyscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
+void grayscalify(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
   for (int x = 0; x < BMP_WIDTH; x++)
   {
@@ -141,8 +148,10 @@ void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNE
   }
 }
 
+// // CIRCULAR SHAPE
 // void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 // {
+//   // start = clock();
 //   copy_image(erode_image, original_image);
 //   for (int x = 0; x < BMP_WIDTH; x++)
 //   {
@@ -172,24 +181,28 @@ void apply_threshold(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNE
 //       }
 //     }
 //   }
+//   // end = clock();
+//   // cpu_time_used = end - start;
 // }
 
-//// DIAMOND SHAPED EROSION ////
+// DIAMOND SHAPED EROSION ////
 void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
 {
-  copy_image(erode_image, original_image);
+  // start = clock();
+  // Make image_2 equal to erode_image to save the original image
+  copy_image(erode_image, image_2);
   for (int x = 0; x < BMP_WIDTH; x++)
   {
     for (int y = 0; y < BMP_HEIGHT; y++)
     {
-      if (original_image[x][y][0] > 0)
+      if (image_2[x][y][0] > 0)
       {
         for (int i = (int)(-EROSION_SIZE * 0.5); i <= (int)(EROSION_SIZE * 0.5); i++)
         {
           int erosionCheck = (int)((EROSION_SIZE - (abs((int)(EROSION_SIZE * 0.5) - (i + (int)(EROSION_SIZE * 0.5))) * 2) - 1) * 0.5);
           for (int j = -erosionCheck; j <= erosionCheck; j++)
           {
-            if (x + i >= 0 && x + i < BMP_WIDTH && y + j >= 0 && y + j < BMP_HEIGHT && original_image[x + i][y + j][0] == 0)
+            if (x + i >= 0 && x + i < BMP_WIDTH && y + j >= 0 && y + j < BMP_HEIGHT && image_2[x + i][y + j][0] == 0)
             {
               // Sets the color to black
               for (int c = 0; c < BMP_CHANNELS; c++)
@@ -204,6 +217,8 @@ void erode(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
     finish:;
     }
   }
+  // end = clock();
+  // cpu_time_used = end - start;
 }
 
 bool detect_area(unsigned char erode_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS])
