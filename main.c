@@ -21,20 +21,13 @@ void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x,
 void copy_image(unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 void drawCoordinates(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS]);
 
-//Declaring the array to store the images (unsigned char = unsigned 8 bit)
+//Declaring the arrays to store the images
 unsigned char input_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-// unsigned char outputscalify_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-// unsigned char thresholded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-// unsigned char eroded_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-// unsigned char output_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
-// unsigned char original_image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 unsigned char image_1[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 unsigned char image_2[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS];
 
 // Other variables
 int cellCount = 0;
-clock_t start, end;
-double cpu_time_used;
 
 // Coordinates
 unsigned int xCoords[500];
@@ -43,12 +36,6 @@ unsigned int yCoords[500];
 //Main function
 int main(int argc, char **argv)
 {
-  start = clock();
-
-  //argc counts how may arguments are passed
-  //argv[0] is a string with the name of the program
-  //argv[1] is the first command line argument (input erode_image)
-  //argv[2] is the second command line argument (output erode_image)
 
   //Checking that 2 arguments are passed
   if (argc != 3)
@@ -92,10 +79,12 @@ int main(int argc, char **argv)
   sprintf(nameOfFile, "%s %s.bmp", nameWithoutExt, "OUTPUT");
   write_bitmap(input_image, nameOfFile);
 
-  printf("Done!\nCells counted: %d", cellCount);
-  end = clock();
-  cpu_time_used = end - start;
-  printf("\n Total time: %f ms\n", cpu_time_used * 1000.0 / CLOCKS_PER_SEC);
+  for (int i = 0; i < cellCount; i++)
+  {
+    printf("(%d,%d)\n", xCoords[i], yCoords[i]);
+  }
+
+  printf("\n\nDone!\nCells counted: %d", cellCount);
   return 0;
 }
 
@@ -307,15 +296,15 @@ void deleteCell(unsigned char image[BMP_WIDTH][BMP_HEIGHT][BMP_CHANNELS], int x,
         if (x + xOffset >= 0 && x + xOffset < BMP_WIDTH && y + yOffset >= 0 && y + yOffset < BMP_HEIGHT)
         {
           // Mark every cell with blue
-          image[x + xOffset][y + yOffset][0] = 0;
+          // image[x + xOffset][y + yOffset][0] = 0;
           // image[x + xOffset][y + yOffset][1] = 0;
-          image[x + xOffset][y + yOffset][2] = 255;
+          // image[x + xOffset][y + yOffset][2] = 255;
 
           // This deletes the cells
-          // for (int c = 0; c < BMP_CHANNELS; c++)
-          // {
-          //   image[x + xOffset][y + yOffset][c] = 0;
-          // }
+          for (int c = 0; c < BMP_CHANNELS; c++)
+          {
+            image[x + xOffset][y + yOffset][c] = 0;
+          }
         }
       }
     }

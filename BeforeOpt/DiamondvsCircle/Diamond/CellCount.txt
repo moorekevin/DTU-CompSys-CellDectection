@@ -1,0 +1,4 @@
+Easy:
+1Medium: 270
+2Medium: 257
+1Hard: 262
